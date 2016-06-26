@@ -1,0 +1,12 @@
+# Scala-IDE specific
+/wordStorm/project/
+/wordStorm/target/
+/project/project/
+/project/target/
+/target/
+/logs/
+
+# IDEA specific
+subProjectOne/.idea
+/.idea
+
