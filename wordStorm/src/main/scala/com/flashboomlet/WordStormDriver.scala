@@ -2,7 +2,6 @@ package com.flashboomlet
 
 import com.flashboomlet.io.DatabaseController
 
-
 /**
   * Driver for the worstorm project
   */
@@ -16,7 +15,6 @@ object WordStormDriver {
     * @param args Command-line arguments
     */
   def main(args: Array[String]): Unit = {
-
   }
 
 }
