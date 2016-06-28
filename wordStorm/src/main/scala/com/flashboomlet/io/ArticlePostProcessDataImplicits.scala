@@ -17,21 +17,22 @@ trait ArticlePostProcessDataImplicits extends WordStormMongoConstants {
 
   implicit object ArticlePostProcessDataWriter extends BSONDocumentWriter[ArticlePostProcessData] {
 
-    override def write(tppd: ArticlePostProcessData): BSONDocument = BSONDocument(
-      PostProcessDataConstants.EntityLastNameString -> BSONString(tppd.entityLastName),
-      PostProcessDataConstants.PublishStartDateString -> BSONDateTime(tppd.publishStartDate),
-      PostProcessDataConstants.IntervalString -> BSONInteger(tppd.interval),
-      PostProcessDataConstants.AverageSentimentString -> BSONDouble(tppd.averageSentiment),
-      PostProcessDataConstants.TotalTitleWordCountString -> BSONInteger(tppd.totalTitleWordCount),
-      PostProcessDataConstants.ContentCountString -> BSONInteger(tppd.contentCount),
-      PostProcessDataConstants.TopWordsString -> MongoUtil.mapToBSONDocument(tppd.topWords),
-      PostProcessDataConstants.TotalSentencesString -> BSONInteger(tppd.totalSentences),
-      PostProcessDataConstants.TotalWordsString -> BSONInteger(tppd.totalWords),
-      PostProcessDataConstants.UniqueAuthorsString -> BSONInteger(tppd.uniqueAuthors)
+    override def write(appd: ArticlePostProcessData): BSONDocument = BSONDocument(
+      PostProcessDataConstants.EntityLastNameString -> BSONString(appd.entityLastName),
+      PostProcessDataConstants.PublishStartDateString -> BSONDateTime(appd.publishStartDate),
+      PostProcessDataConstants.IntervalString -> BSONInteger(appd.interval),
+      PostProcessDataConstants.AverageSentimentString -> BSONDouble(appd.averageSentiment),
+      PostProcessDataConstants.TotalTitleWordCountString -> BSONInteger(appd.totalTitleWordCount),
+      PostProcessDataConstants.ContentCountString -> BSONInteger(appd.contentCount),
+      PostProcessDataConstants.TopWordsString -> MongoUtil.mapToBSONDocument(appd.topWords),
+      PostProcessDataConstants.TotalSentencesString -> BSONInteger(appd.totalSentences),
+      PostProcessDataConstants.TotalWordsString -> BSONInteger(appd.totalWords),
+      PostProcessDataConstants.UniqueAuthorsString -> BSONInteger(appd.uniqueAuthors),
+      PostProcessDataConstants.StrategyString -> BSONInteger(appd.strategy)
     )
   }
 
-  implicit object TweetPostProcessDataReader extends BSONDocumentReader[ArticlePostProcessData] {
+  implicit object ArticlePostProcessDataReader extends BSONDocumentReader[ArticlePostProcessData] {
 
     override def read(doc: BSONDocument): ArticlePostProcessData = {
       val entityLastName = doc.getAs[String](PostProcessDataConstants.EntityLastNameString).get
@@ -44,6 +45,7 @@ trait ArticlePostProcessDataImplicits extends WordStormMongoConstants {
       val totalSentences = doc.getAs[Int](PostProcessDataConstants.TotalSentencesString).get
       val totalWords = doc.getAs[Int](PostProcessDataConstants.TotalWordsString).get
       val uniqueAuthors = doc.getAs[Int](PostProcessDataConstants.UniqueAuthorsString).get
+      val strategy = doc.getAs[Int](PostProcessDataConstants.StrategyString).get
 
       ArticlePostProcessData(
         entityLastName = entityLastName,
@@ -55,7 +57,8 @@ trait ArticlePostProcessDataImplicits extends WordStormMongoConstants {
         topWords = MongoUtil.bsonDocumentToMap(topWords),
         totalSentences = totalSentences,
         totalWords = totalWords,
-        uniqueAuthors = uniqueAuthors
+        uniqueAuthors = uniqueAuthors,
+        strategy = strategy
       )
     }
   }

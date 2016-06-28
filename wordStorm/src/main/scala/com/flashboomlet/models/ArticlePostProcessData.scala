@@ -13,6 +13,7 @@ package com.flashboomlet.models
   * @param topWords 20 or so most common words in the interval, as a map
   * @param uniqueAuthors number of unique authors in the interval
   * @param averageSentiment average sentiment of text in the interval
+  * @param strategy The iteration of the strategy used to extract this data
   */
 case class ArticlePostProcessData(
   entityLastName: String,
@@ -24,5 +25,6 @@ case class ArticlePostProcessData(
   contentCount: Int,
   topWords: Map[String, Int],
   uniqueAuthors: Int,
-  averageSentiment: Double
+  averageSentiment: Double,
+  strategy: Int
 )

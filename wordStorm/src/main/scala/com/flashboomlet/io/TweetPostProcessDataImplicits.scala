@@ -27,7 +27,8 @@ trait TweetPostProcessDataImplicits extends WordStormMongoConstants {
       PostProcessDataConstants.TopWordsString -> MongoUtil.mapToBSONDocument(tppd.topWords),
       PostProcessDataConstants.TotalSentencesString -> BSONInteger(tppd.totalSentences),
       PostProcessDataConstants.TotalWordsString -> BSONInteger(tppd.totalWords),
-      PostProcessDataConstants.UniqueAuthorsString -> BSONInteger(tppd.uniqueAuthors)
+      PostProcessDataConstants.UniqueAuthorsString -> BSONInteger(tppd.uniqueAuthors),
+      PostProcessDataConstants.StrategyString -> BSONInteger(tppd.strategy)
     )
   }
 
@@ -44,6 +45,7 @@ trait TweetPostProcessDataImplicits extends WordStormMongoConstants {
       val totalSentences = doc.getAs[Int](PostProcessDataConstants.TotalSentencesString).get
       val totalWords = doc.getAs[Int](PostProcessDataConstants.TotalWordsString).get
       val uniqueAuthors = doc.getAs[Int](PostProcessDataConstants.UniqueAuthorsString).get
+      val strategy = doc.getAs[Int](PostProcessDataConstants.StrategyString).get
 
       TweetPostProcessData(
         entityLastName = entityLastName,
@@ -55,7 +57,8 @@ trait TweetPostProcessDataImplicits extends WordStormMongoConstants {
         topWords = MongoUtil.bsonDocumentToMap(topWords),
         totalSentences = totalSentences,
         totalWords = totalWords,
-        uniqueAuthors = uniqueAuthors
+        uniqueAuthors = uniqueAuthors,
+        strategy = strategy
       )
     }
   }

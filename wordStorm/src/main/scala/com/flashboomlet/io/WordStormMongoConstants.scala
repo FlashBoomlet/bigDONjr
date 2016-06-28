@@ -8,9 +8,14 @@ trait WordStormMongoConstants {
   /** String constant for the article post process data collection in Mongodb */
   val ArticlePostProcessDatasCollectionString = "articlepostprocessdatas"
 
-  /** String constant for the article post process data collection in Mongodb */
+  /** String constant for the tweet post process data collection in Mongodb */
   val TweetPostProcessDatasCollectionString = "tweetpostprocessdatas"
 
+  /** String constant for the recent article post process collection in Mongodb */
+  val RecentArticlePostProcessCollectionString  = "recentarticlepostprocess"
+
+  /** String constant for the recent tweet post process collection in Mongodb */
+  val RecentTweetPostProcessCollectionString = "recenttweetpostprocess"
 
   object PostProcessDataConstants {
 
@@ -33,5 +38,18 @@ trait WordStormMongoConstants {
     val UniqueAuthorsString = "unique_authors"
 
     val AverageSentimentString = "average_sentiment"
+
+    val StrategyString = "strategy"
+  }
+
+  object RecentPostProcessConstants {
+
+    val StartTimeString = "start_time"
+
+    val StrategyString = "strategy"
+  }
+
+  object WordStormGlobalConstants {
+    val GroupString = "$group"
   }
 }
