@@ -11,14 +11,20 @@ import reactivemongo.api.collections.bson.BSONCollection
 class DatabaseController
     extends WordStormMongoConstants
     with LazyLogging
-    with MongoImplicits {
+    with MongoImplicits
+    with ArticlePostProcessDataImplicits
+    with TweetPostProcessDataImplicits {
 
   /** Instance of pre-configured database driver. */
   val databaseDriver = MongoDatabaseDriver()
 
-  /** Databse collection for pos-proccess data */
-  val postProcessDatasCollection: BSONCollection = databaseDriver
-    .db(PostProcessDatasCollectionString)
+  /** Database collection for article post-process data */
+  val articlePostProcessDatasCollection: BSONCollection = databaseDriver
+    .db(ArticlePostProcessDatasCollectionString)
+
+  /** Database collection for tweet post process data */
+  val tweetPostProcessDatasCollection: BSONCollection = databaseDriver
+    .db(TweetPostProcessDatasCollectionString)
 
 }
 
