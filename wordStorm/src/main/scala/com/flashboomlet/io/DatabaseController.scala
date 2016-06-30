@@ -1,11 +1,8 @@
 package com.flashboomlet.io
 
-import com.flashboomlet.data.models.FinalTweet
-import com.flashboomlet.data.models.NewYorkTimesArticle
 import com.flashboomlet.db.MongoDatabaseDriver
 import com.flashboomlet.db.implicits.MongoImplicits
-import com.flashboomlet.models.RecentArticlePostProcess
-import com.flashboomlet.models.RecentTweetPostProcess
+import com.flashboomlet.models.RecentPostProcess
 import com.typesafe.scalalogging.LazyLogging
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.bson.BSONDocument
@@ -23,10 +20,8 @@ class DatabaseController
     extends WordStormMongoConstants
     with LazyLogging
     with MongoImplicits
-    with ArticlePostProcessDataImplicits
-    with TweetPostProcessDataImplicits
-    with RecentArticlePostProcessImplicits
-    with RecentTweetPostProcessImplicits {
+    with PostProcessDataImplicits
+    with RecentPostProcessImplicits {
 
   /** Instance of pre-configured database driver. */
   val databaseDriver = MongoDatabaseDriver()
@@ -47,16 +42,16 @@ class DatabaseController
   val recentTweetPostProcessCollection: BSONCollection = databaseDriver
     .db(RecentTweetPostProcessCollectionString)
 
-  def getRecentArticlePostProcess(strategy: Int): Option[RecentArticlePostProcess] = {
-    val future: Future[Option[RecentArticlePostProcess]] = recentArticlePostProcessCollection
+  def getRecentArticlePostProcess(strategy: Int): Option[RecentPostProcess] = {
+    val future: Future[Option[RecentPostProcess]] = recentArticlePostProcessCollection
       .find(BSONDocument(RecentPostProcessConstants.StrategyString -> strategy))
-      .cursor[RecentArticlePostProcess]().collect[List]()
+      .cursor[RecentPostProcess]().collect[List]()
       .map { list => list.headOption }
 
     Await.result(future, Duration.Inf)
   }
 
-  def updateRecentArticlePostProcess(recentArticlePostProcess: RecentArticlePostProcess): Unit = {
+  def updateRecentArticlePostProcess(recentArticlePostProcess: RecentPostProcess): Unit = {
     val selector = BSONDocument(
       RecentPostProcessConstants.StrategyString -> recentArticlePostProcess.strategy
     )
@@ -66,16 +61,16 @@ class DatabaseController
     recentArticlePostProcessCollection.findAndUpdate(selector, modifier, upsert = true)
   }
 
-  def getRecentTweetPostProcess(strategy: Int): Option[RecentTweetPostProcess] = {
-    val future: Future[Option[RecentTweetPostProcess]] = recentTweetPostProcessCollection
+  def getRecentTweetPostProcess(strategy: Int): Option[RecentPostProcess] = {
+    val future: Future[Option[RecentPostProcess]] = recentTweetPostProcessCollection
       .find(BSONDocument(RecentPostProcessConstants.StrategyString -> strategy))
-      .cursor[RecentTweetPostProcess]().collect[List]()
+      .cursor[RecentPostProcess]().collect[List]()
       .map { list => list.headOption }
 
     Await.result(future, Duration.Inf)
   }
 
-  def updateRecentTweetPostProcess(recentTweetPostProcess: RecentTweetPostProcess): Unit = {
+  def updateRecentTweetPostProcess(recentTweetPostProcess: RecentPostProcess): Unit = {
     val selector = BSONDocument(
       RecentPostProcessConstants.StrategyString -> recentTweetPostProcess.strategy
     )

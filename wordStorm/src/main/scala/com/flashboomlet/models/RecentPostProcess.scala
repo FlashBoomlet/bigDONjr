@@ -5,7 +5,7 @@ package com.flashboomlet.models
   * @param startTime The start time in milliseconds of the most recently post processed chunk
   * @param strategy The iteration of the post processing strategy
   */
-case class RecentTweetPostProcess(
+case class RecentPostProcess(
   startTime: Long,
   strategy: Int
 )

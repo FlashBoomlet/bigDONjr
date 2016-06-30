@@ -9,13 +9,13 @@ package com.flashboomlet.models
   * @param totalWords total words in the interval
   * @param totalSentences total sentences in the interval
   * @param totalTitleWordCount average title word count in the interval
-  * @param contentCount total number of tweets in the interval
+  * @param contentCount total number of data in the interval
   * @param topWords 20 or so most common words in the interval, as a map
   * @param uniqueAuthors number of unique authors in the interval
   * @param averageSentiment average sentiment of text in the interval
   * @param strategy The iteration of the strategy used to extract this data
   */
-case class TweetPostProcessData(
+case class PostProcessData(
   entityLastName: String,
   publishStartDate: Long,
   interval: Int,
