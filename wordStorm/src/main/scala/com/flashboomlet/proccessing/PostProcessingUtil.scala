@@ -1,10 +1,7 @@
 package com.flashboomlet.proccessing
 
-import java.util.Date
-
 import com.flashboomlet.io.DatabaseController
-import com.flashboomlet.models.RecentArticlePostProcess
-import com.flashboomlet.models.RecentTweetPostProcess
+import com.flashboomlet.models.RecentPostProcess
 import com.flashboomlet.preproccessing.DateUtil
 
 /**
@@ -17,13 +14,13 @@ object PostProcessingUtil {
   val beginningOfTime = DateUtil.getNytInMillis("2016-06-25T09:00:00Z")
 
   def getRecentArticlePostProcess(
-    strategy: Int)(implicit dbController: DatabaseController): RecentArticlePostProcess = {
+    strategy: Int)(implicit dbController: DatabaseController): RecentPostProcess = {
 
     dbController.getRecentArticlePostProcess(strategy) match {
       case Some(r) => r
       case None =>
         val startTime = beginningOfTime
-        val recentArticlePostProcess = RecentArticlePostProcess(
+        val recentArticlePostProcess = RecentPostProcess(
           startTime = startTime,
           strategy = strategy)
         dbController.updateRecentArticlePostProcess(recentArticlePostProcess)
@@ -32,17 +29,17 @@ object PostProcessingUtil {
   }
 
   def getRecentTweetPostProcess(
-      strategy: Int)(implicit dbController: DatabaseController): RecentTweetPostProcess = {
+      strategy: Int)(implicit dbController: DatabaseController): RecentPostProcess = {
 
     dbController.getRecentTweetPostProcess(strategy) match {
       case Some(r) => r
       case None =>
         val startTime = beginningOfTime
-        val recentArticlePostProcess = RecentTweetPostProcess(
+        val recentTweetPostProcess = RecentPostProcess(
           startTime = startTime,
           strategy = strategy)
-        dbController.updateRecentTweetPostProcess(recentArticlePostProcess)
-        recentArticlePostProcess
+        dbController.updateRecentTweetPostProcess(recentTweetPostProcess)
+        recentTweetPostProcess
     }
   }
 }

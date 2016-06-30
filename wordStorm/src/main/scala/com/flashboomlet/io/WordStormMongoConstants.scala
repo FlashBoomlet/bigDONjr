@@ -48,8 +48,4 @@ trait WordStormMongoConstants {
 
     val StrategyString = "strategy"
   }
-
-  object WordStormGlobalConstants {
-    val GroupString = "$group"
-  }
 }

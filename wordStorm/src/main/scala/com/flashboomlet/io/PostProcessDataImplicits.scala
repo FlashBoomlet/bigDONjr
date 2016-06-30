@@ -3,7 +3,7 @@ package com.flashboomlet.io
 import java.util.Date
 
 import com.flashboomlet.db.MongoUtil
-import com.flashboomlet.models.TweetPostProcessData
+import com.flashboomlet.models.PostProcessData
 import reactivemongo.bson.BSONDateTime
 import reactivemongo.bson.BSONDocument
 import reactivemongo.bson.BSONDocumentReader
@@ -13,28 +13,28 @@ import reactivemongo.bson.BSONInteger
 import reactivemongo.bson.BSONString
 
 /** implicits for the TweetPostProccessData class */
-trait TweetPostProcessDataImplicits extends WordStormMongoConstants {
+trait PostProcessDataImplicits extends WordStormMongoConstants {
 
-  implicit object TweetPostProcessDataWriter extends BSONDocumentWriter[TweetPostProcessData] {
+  implicit object PostProcessDataWriter extends BSONDocumentWriter[PostProcessData] {
 
-    override def write(tppd: TweetPostProcessData): BSONDocument = BSONDocument(
-      PostProcessDataConstants.EntityLastNameString -> BSONString(tppd.entityLastName),
-      PostProcessDataConstants.PublishStartDateString -> BSONDateTime(tppd.publishStartDate),
-      PostProcessDataConstants.IntervalString -> BSONInteger(tppd.interval),
-      PostProcessDataConstants.AverageSentimentString -> BSONDouble(tppd.averageSentiment),
-      PostProcessDataConstants.TotalTitleWordCountString -> BSONInteger(tppd.totalTitleWordCount),
-      PostProcessDataConstants.ContentCountString -> BSONInteger(tppd.contentCount),
-      PostProcessDataConstants.TopWordsString -> MongoUtil.mapToBSONDocument(tppd.topWords),
-      PostProcessDataConstants.TotalSentencesString -> BSONInteger(tppd.totalSentences),
-      PostProcessDataConstants.TotalWordsString -> BSONInteger(tppd.totalWords),
-      PostProcessDataConstants.UniqueAuthorsString -> BSONInteger(tppd.uniqueAuthors),
-      PostProcessDataConstants.StrategyString -> BSONInteger(tppd.strategy)
+    override def write(appd: PostProcessData): BSONDocument = BSONDocument(
+      PostProcessDataConstants.EntityLastNameString -> BSONString(appd.entityLastName),
+      PostProcessDataConstants.PublishStartDateString -> BSONDateTime(appd.publishStartDate),
+      PostProcessDataConstants.IntervalString -> BSONInteger(appd.interval),
+      PostProcessDataConstants.AverageSentimentString -> BSONDouble(appd.averageSentiment),
+      PostProcessDataConstants.TotalTitleWordCountString -> BSONInteger(appd.totalTitleWordCount),
+      PostProcessDataConstants.ContentCountString -> BSONInteger(appd.contentCount),
+      PostProcessDataConstants.TopWordsString -> MongoUtil.mapToBSONDocument(appd.topWords),
+      PostProcessDataConstants.TotalSentencesString -> BSONInteger(appd.totalSentences),
+      PostProcessDataConstants.TotalWordsString -> BSONInteger(appd.totalWords),
+      PostProcessDataConstants.UniqueAuthorsString -> BSONInteger(appd.uniqueAuthors),
+      PostProcessDataConstants.StrategyString -> BSONInteger(appd.strategy)
     )
   }
 
-  implicit object TweetPostProcessDataReader extends BSONDocumentReader[TweetPostProcessData] {
+  implicit object PostProcessDataReader extends BSONDocumentReader[PostProcessData] {
 
-    override def read(doc: BSONDocument): TweetPostProcessData = {
+    override def read(doc: BSONDocument): PostProcessData = {
       val entityLastName = doc.getAs[String](PostProcessDataConstants.EntityLastNameString).get
       val publishSD = doc.getAs[Date](PostProcessDataConstants.PublishStartDateString).get.getTime
       val interval = doc.getAs[Int](PostProcessDataConstants.IntervalString).get
@@ -47,7 +47,7 @@ trait TweetPostProcessDataImplicits extends WordStormMongoConstants {
       val uniqueAuthors = doc.getAs[Int](PostProcessDataConstants.UniqueAuthorsString).get
       val strategy = doc.getAs[Int](PostProcessDataConstants.StrategyString).get
 
-      TweetPostProcessData(
+      PostProcessData(
         entityLastName = entityLastName,
         publishStartDate = publishSD,
         interval = interval,
