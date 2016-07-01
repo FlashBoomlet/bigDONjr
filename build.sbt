@@ -33,3 +33,10 @@ lazy val wordStorm = (project in file ("wordStorm"))
     name := "wordStorm",
     version := "0.0.0",
     javaOptions += "-Dlogback.configurationFile=../dataScavenger/src/main/resources/logback.xml")
+
+lazy val chronoLapse = (project in file ("chronoLapse"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "chronoLapse",
+    version := "0.0.0"
+  ).dependsOn(wordStorm)
