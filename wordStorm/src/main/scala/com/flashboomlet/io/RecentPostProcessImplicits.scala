@@ -1,7 +1,5 @@
 package com.flashboomlet.io
 
-import java.util.Date
-
 import com.flashboomlet.models.RecentPostProcess
 import reactivemongo.bson.BSONDateTime
 import reactivemongo.bson.BSONDocument
@@ -23,7 +21,7 @@ trait RecentPostProcessImplicits extends WordStormMongoConstants {
   implicit object RecentPostProcessReader extends BSONDocumentReader[RecentPostProcess] {
 
     override def read(doc: BSONDocument): RecentPostProcess = {
-      val startTime = doc.getAs[Date](RecentPostProcessConstants.StartTimeString).get.getTime
+      val startTime = doc.getAs[Long](RecentPostProcessConstants.StartTimeString).get
       val strategy = doc.getAs[Int](RecentPostProcessConstants.StrategyString).get
 
       RecentPostProcess(
