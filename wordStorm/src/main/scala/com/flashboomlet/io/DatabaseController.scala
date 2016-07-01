@@ -1,16 +1,22 @@
 package com.flashboomlet.io
 
+import com.flashboomlet.data.models.FinalTweet
+import com.flashboomlet.data.models.NewYorkTimesArticle
 import com.flashboomlet.db.MongoDatabaseDriver
 import com.flashboomlet.db.implicits.MongoImplicits
+import com.flashboomlet.models.PostProcessData
 import com.flashboomlet.models.RecentPostProcess
 import com.typesafe.scalalogging.LazyLogging
 import reactivemongo.api.collections.bson.BSONCollection
+import reactivemongo.bson.BSONDateTime
 import reactivemongo.bson.BSONDocument
 
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
+import scala.util.Failure
+import scala.util.Success
 
 
 /**
@@ -41,6 +47,58 @@ class DatabaseController
   /** Database collection for recent tweet post process */
   val recentTweetPostProcessCollection: BSONCollection = databaseDriver
     .db(RecentTweetPostProcessCollectionString)
+
+//  def dumpPostProcessData(): Unit = {
+//    Await.result(
+//      articlePostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]().collect[List](),
+//      Duration.Inf).foreach(d => println(d))
+//  }
+
+  def insertArticlePostProcessData(postProcessData: PostProcessData): Unit = {
+    articlePostProcessDatasCollection.insert(postProcessData).onComplete {
+      case Failure(e) =>
+        logger.error(s"Failed to insert article PostProcessData: ${e.getMessage}")
+        throw e// we fucked up
+      case Success(writeResult) => logger.info("Successfully inserted article PostProcessData")
+    }
+  }
+
+  def insertTweetPostProcessData(postProcessData: PostProcessData): Unit = {
+    tweetPostProcessDatasCollection.insert(postProcessData).onComplete {
+      case Failure(e) =>
+        logger.error(s"Failed to insert tweet PostProcessData: ${e.getMessage}")
+        throw e// we fucked up
+      case Success(writeResult) => logger.info("Successfully inserted tweet PostProcessData")
+    }
+  }
+
+  def getDateRangeQuery(start: Long, end: Long): BSONDocument = BSONDocument(
+    GlobalConstants.MetaDatasString ->
+      BSONDocument(GlobalConstants.ElemMatchString ->
+        BSONDocument(
+          MetaDataConstants.PublishDateString -> BSONDocument(
+            "$gte" -> BSONDateTime(start),
+            "$lt" -> BSONDateTime(end)
+          )
+        )
+      )
+  )
+
+ def getTweets(startTime: Long, endTime: Long): List[FinalTweet] = {
+   val future: Future[List[FinalTweet]] = databaseDriver.tweetsCollection
+     .find(getDateRangeQuery(startTime, endTime))
+     .cursor[FinalTweet]().collect[List]()
+
+   Await.result(future, Duration.Inf)
+ }
+
+  def getArticles(startTime: Long, endTime: Long): List[NewYorkTimesArticle] = {
+    val future: Future[List[NewYorkTimesArticle]] = databaseDriver.newYorkTimesArticlesCollection
+      .find(getDateRangeQuery(startTime, endTime))
+      .cursor[NewYorkTimesArticle]().collect[List]()
+
+    Await.result(future, Duration.Inf)
+  }
 
   def getRecentArticlePostProcess(strategy: Int): Option[RecentPostProcess] = {
     val future: Future[Option[RecentPostProcess]] = recentArticlePostProcessCollection
