@@ -1,4 +1,6 @@
 # Scala-IDE specific
+/chronoLapse/project/
+/chronoLapse/target/
 /wordStorm/project/
 /wordStorm/target/
 /project/project/

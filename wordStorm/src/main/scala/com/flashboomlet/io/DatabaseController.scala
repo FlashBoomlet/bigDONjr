@@ -72,7 +72,7 @@ class DatabaseController
     }
   }
 
-  def getDateRangeQuery(start: Long, end: Long): BSONDocument = BSONDocument(
+  def getMetaDataDateRangeQuery(start: Long, end: Long): BSONDocument = BSONDocument(
     GlobalConstants.MetaDatasString ->
       BSONDocument(GlobalConstants.ElemMatchString ->
         BSONDocument(
@@ -84,9 +84,46 @@ class DatabaseController
       )
   )
 
+  def getPostProcessDateRangeQuery(entity: String, start: Long, end: Long): BSONDocument =
+    BSONDocument(
+      PostProcessDataConstants.EntityLastNameString -> entity,
+      PostProcessDataConstants.PublishStartDateString ->
+        BSONDocument(
+          MetaDataConstants.PublishDateString -> BSONDocument(
+            "$gte" -> BSONDateTime(start),
+            "$lt" -> BSONDateTime(end)
+          )
+        )
+    )
+
+  def getArticlePostProcesses(
+     entityLastName: String,
+     starTime: Long,
+     endTime: Long): List[PostProcessData] = {
+
+   val future: Future[List[PostProcessData]] = articlePostProcessDatasCollection.find(
+     getPostProcessDateRangeQuery(entityLastName, starTime, endTime)
+   ).cursor[PostProcessData]().collect[List]()
+
+   Await.result(future, Duration.Inf)
+  }
+
+
+  def getTweetPostProcesses(
+      entityLastName: String,
+      starTime: Long,
+      endTime: Long): List[PostProcessData] = {
+
+    val future: Future[List[PostProcessData]] = tweetPostProcessDatasCollection.find(
+      getPostProcessDateRangeQuery(entityLastName, starTime, endTime)
+    ).cursor[PostProcessData]().collect[List]()
+
+    Await.result(future, Duration.Inf)
+  }
+
  def getTweets(startTime: Long, endTime: Long): List[FinalTweet] = {
    val future: Future[List[FinalTweet]] = databaseDriver.tweetsCollection
-     .find(getDateRangeQuery(startTime, endTime))
+     .find(getMetaDataDateRangeQuery(startTime, endTime))
      .cursor[FinalTweet]().collect[List]()
 
    Await.result(future, Duration.Inf)
@@ -94,7 +131,7 @@ class DatabaseController
 
   def getArticles(startTime: Long, endTime: Long): List[NewYorkTimesArticle] = {
     val future: Future[List[NewYorkTimesArticle]] = databaseDriver.newYorkTimesArticlesCollection
-      .find(getDateRangeQuery(startTime, endTime))
+      .find(getMetaDataDateRangeQuery(startTime, endTime))
       .cursor[NewYorkTimesArticle]().collect[List]()
 
     Await.result(future, Duration.Inf)
