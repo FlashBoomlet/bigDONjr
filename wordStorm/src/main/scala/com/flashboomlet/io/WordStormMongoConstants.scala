@@ -25,6 +25,8 @@ trait WordStormMongoConstants {
 
     val IntervalString = "interval"
 
+    val Minute = "minute"
+
     val TotalWordsString = "total_words"
 
     val TotalSentencesString = "total_sentences"
@@ -38,6 +40,10 @@ trait WordStormMongoConstants {
     val UniqueAuthorsString = "unique_authors"
 
     val AverageSentimentString = "average_sentiment"
+
+    val PercentPositiveSentiment = "percent_positive_sentiment"
+
+    val PercentNegativeSentiment = "percent_negative_sentiment"
 
     val StrategyString = "strategy"
   }

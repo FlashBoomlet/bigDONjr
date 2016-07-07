@@ -86,15 +86,27 @@ class DatabaseController
 
   def getPostProcessDateRangeQuery(entity: String, start: Long, end: Long): BSONDocument =
     BSONDocument(
-      PostProcessDataConstants.EntityLastNameString -> entity,
+      PostProcessDataConstants.EntityLastNameString -> entity/*,
       PostProcessDataConstants.PublishStartDateString ->
         BSONDocument(
           MetaDataConstants.PublishDateString -> BSONDocument(
             "$gte" -> BSONDateTime(start),
             "$lt" -> BSONDateTime(end)
-          )
-        )
+          ) */
+        //)
     )
+
+  def dumpPostProcesses: Unit = {
+    Await.result(tweetPostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]().collect[List](), Duration.Inf).foreach(d => println(d))
+    Await.result(articlePostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]().collect[List](), Duration.Inf).foreach(d => println(d))
+
+  }
+
+  def dumpRecentPostProcess: Unit = {
+    Await.result(recentTweetPostProcessCollection.find(BSONDocument()).cursor[RecentPostProcess]().collect[List](), Duration.Inf).foreach(d => println(d))
+    Await.result(recentArticlePostProcessCollection.find(BSONDocument()).cursor[RecentPostProcess]().collect[List](), Duration.Inf).foreach(d => println(d))
+
+  }
 
   def getArticlePostProcesses(
      entityLastName: String,
