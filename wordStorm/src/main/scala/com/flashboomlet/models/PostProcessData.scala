@@ -19,6 +19,7 @@ case class PostProcessData(
   entityLastName: String,
   publishStartDate: Long,
   interval: Int,
+  minute: Int,
   totalWords: Int,
   totalSentences: Int,
   totalTitleWordCount: Int,
@@ -26,5 +27,7 @@ case class PostProcessData(
   topWords: Map[String, Int],
   uniqueAuthors: Int,
   averageSentiment: Double,
+  percentPositiveSentiment: Double,
+  percentNegativeSentiment: Double,
   strategy: Int
 )

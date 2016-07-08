@@ -16,7 +16,7 @@ object PostProcessingConstants {
 
   final val TwitterIntervalMinutes = 5
 
-  val Strategy = 3
+  val Strategy = 0
 
   final val TopWordCount: Int = 10
 

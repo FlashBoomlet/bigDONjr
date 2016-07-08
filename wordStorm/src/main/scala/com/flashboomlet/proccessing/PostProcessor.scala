@@ -1,5 +1,7 @@
 package com.flashboomlet.proccessing
 
+import java.text.SimpleDateFormat
+
 import com.flashboomlet.WordStormDriver
 import com.flashboomlet.data.models.FinalTweet
 import com.flashboomlet.data.models.NewYorkTimesArticle
@@ -143,13 +145,18 @@ object PostProcessor extends LazyLogging {
         entityLastName = group._1,
         publishStartDate = startDate,
         interval = interval,
+        minute = msTimeToMinuteOfDay(startDate),
         totalWords = group._2.map(_.wordCount).sum,
         totalSentences = group._2.map(_.sentenceCount).sum,
         totalTitleWordCount = group._2.map(_.titleWordCount).sum,
         contentCount = group._2.length,
-        topWords = topWords(group._2.map(_.wordOccurrences) reduce (_ ++ _)),
+        topWords = topWords(combinedMaps(group._2.map(_.wordOccurrences))),
         uniqueAuthors = group._2.map(_.author).distinct.length,
         averageSentiment = calculateAverageSentiment(group._2.map(_.sentiment)),
+        percentPositiveSentiment = percentSentiment(group._2.map(_.sentiment),
+          PostProcessingConstants.PositiveString),
+        percentNegativeSentiment = percentSentiment(group._2.map(_.sentiment),
+          PostProcessingConstants.NegativeString),
         strategy = PostProcessingConstants.Strategy
       )
     ).toSeq
@@ -162,7 +169,33 @@ object PostProcessor extends LazyLogging {
     * @return the top of the top words
     */
   private def topWords(words: Map[String, Int]): Map[String, Int] = {
-    Map(words.toSeq.sortWith(_._2 > _._2):_*).take(PostProcessingConstants.TopWordCount)
+    Map(words.toSeq.sortWith(_._2 > _._2): _*).take(PostProcessingConstants.TopWordCount)
+  }
+
+  /**
+    * Helper function to combined Maps
+    *
+    * @param data a list of maps to combined and accumulate
+    * @return a combined map
+    */
+  private def combinedMaps(data: List[Map[String, Int]]): Map[String, Int] = {
+    data.flatMap(mapObj => mapObj.toList).groupBy(_._1).map(item =>
+      (item._1, item._2.map(_._2).sum)
+    )
+  }
+
+  /**
+    * MS Time to Minute of Day Converts a MS timestamp to a 5 minute interval in a day
+    *
+    * @param time the MS time stamp
+    * @return the int of the 5 minute interval in a day that the MS time stamp is in
+    */
+  def msTimeToMinuteOfDay(time: Long): Int = {
+    val minuteFormat = new SimpleDateFormat("mm")
+    val hourFormat = new SimpleDateFormat("HH")
+    val minute = Math.floor(minuteFormat.format(time).toInt / 5 ) * 5
+    val hour = hourFormat.format(time).toInt * 60
+    hour + minute.toInt
   }
 
   /**
@@ -197,10 +230,30 @@ object PostProcessor extends LazyLogging {
   }
 
   /**
+    * Calculates the Percent of content that falls within a given sentiment level
+    *
+    * @param sentiment the list of sentiment values
+    * @param sign the sentiment level
+    * @return a percent of the content that is at the given sentiment level
+    */
+  def percentSentiment(sentiment: List[Sentiment], sign: String): Double = {
+    val positive = getSumsAndCounts(
+      sentiment.filter(s => s.result == sign))
+    if(sentiment.isEmpty) {
+      0.0
+    }
+    else
+    {
+      positive._2 / sentiment.length.toDouble
+    }
+  }
+
+
+  /**
     * Get Sums and Counts is a helper function to get the sums and counts of a sentiment
     *
     * @param sentiment the list of sentiment values to derive data on
-    * @return the derived data, sums and counts
+    * @return the derived data, sums and counts (Sum of Sentiment, Count of Sentiment)
     */
   private def getSumsAndCounts(sentiment: List[Sentiment]): (Double, Double) = {
     val sumAndCounts = sentiment.foldLeft[(Double, Double)]((0,0))( (acc, data) => {
