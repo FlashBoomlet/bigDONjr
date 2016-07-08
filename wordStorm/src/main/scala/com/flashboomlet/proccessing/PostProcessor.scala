@@ -240,11 +240,11 @@ object PostProcessor extends LazyLogging {
     val positive = getSumsAndCounts(
       sentiment.filter(s => s.result == sign))
     if(sentiment.isEmpty) {
-      0.0
+      0D
     }
     else
     {
-      positive._2 / sentiment.length.toDouble
+      positive._2 / sentiment.length
     }
   }
 
