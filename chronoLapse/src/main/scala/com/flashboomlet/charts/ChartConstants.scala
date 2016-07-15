@@ -5,8 +5,8 @@ package com.flashboomlet.charts
   */
 trait ChartConstants {
 
-  val chartWidth = 1800
+  val chartWidth = 1920
 
-  val chartHeight = 1000
+  val chartHeight = 1080
 
 }
