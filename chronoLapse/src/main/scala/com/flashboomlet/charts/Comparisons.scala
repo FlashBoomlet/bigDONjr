@@ -1,16 +1,13 @@
 package com.flashboomlet.charts
 
-import breeze.plot.Figure
-import breeze.plot.plot
+import com.flashboomlet.charts.GenericChartPlotter.chartPointPlot
 import com.flashboomlet.interpolation.Interpolation.funcToArray
 import com.flashboomlet.interpolation.Interpolation.interpolateData
 import com.flashboomlet.models.PostProcessData
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.util.Try
-
 /**
-  * Comparisons shows the comparisions between data
+  * Comparisons shows the comparisons between data
   */
 object Comparisons extends LazyLogging with ChartConstants {
 
@@ -19,45 +16,40 @@ object Comparisons extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def sentimentVsContentCount(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-
-    entities.foreach { entity =>
-      val y = entity._2.map(_.averageSentiment)
-      val listOfYs = entity._2.groupBy(_.contentCount).map(g =>
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).flatMap{ e =>
+      // Series to aid in interpolating the data based on the grouping of the data
+      val listOfYs = e._2.groupBy(_.contentCount).map(g =>
         (g._1, g._2.map(i => i.averageSentiment))).toList
       val uniques = listOfYs.map(i =>
         (i._1.toDouble, i._2.sum / i._2.size.toDouble)).sortBy(_._1)
-      val x = entity._2.map(_.contentCount.toDouble)
-      p += plot(
-        x,
-        y,
-        '.',
-        name = entity._1)
-      Try {
-        val func = funcToArray(interpolateData(uniques.map(_._1),
-          uniques.map(_._2), 2), uniques.map(_._1))
-        p += plot(uniques.map(_._1), func, '-', name = "Interpolation for: " + entity._1)
-      }.getOrElse( logger.info(s"Failed to Interpolate data at $time"))
-
+      List(
+        ChartPoint(
+          seriesName = e._1,
+          plotType = '.',
+          data = e._2.map(p => (p.contentCount.toDouble, p.averageSentiment))
+        ),
+        ChartPoint(
+          seriesName = e._1 + " - Interpolation",
+          plotType = '-',
+          data = (uniques.map(_._1) zip funcToArray(interpolateData(uniques.map(_._1),
+            uniques.map(_._2), 5), uniques.map(_._1))).sortBy(_._1)
+        )
+      )
     }
-    p.xlabel = "Content Count"
-    p.ylabel = "Sentiment"
-    p.legend = true
-    p.title = "Sentiment Vs. Content Count"
-
-    Try {
-      f.saveas(fileLocation + "SentimentVsContentCount_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: SentimentVsContentCount, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Sentiment Vs Content Count",
+      "Content Count",
+      "Sentiment",
+      fileLocation,
+      time
     )
   }
 
@@ -66,46 +58,40 @@ object Comparisons extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def sentimentVsWordCount(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-
-    entities.foreach { entity =>
-      val y = entity._2.map(_.averageSentiment)
-      val x = entity._2.map(_.totalWords.toDouble)
-      p += plot(
-        x,
-        y,
-        '.',
-        name = entity._1)
-
-      val listOfYs = entity._2.groupBy(_.totalWords).map(g =>
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).flatMap{ e =>
+      // Series to aid in interpolating the data based on the grouping of the data
+      val listOfYs = e._2.groupBy(_.totalWords).map(g =>
         (g._1, g._2.map(i => i.averageSentiment))).toList
       val uniques = listOfYs.map(i =>
         (i._1.toDouble, i._2.sum / i._2.size.toDouble)).sortBy(_._1)
-
-      Try {
-        val func = funcToArray(interpolateData(uniques.map(_._1),
-          uniques.map(_._2), 2), uniques.map(_._1))
-        p += plot(uniques.map(_._1), func, '-', name = "Interpolation for: " + entity._1)
-      }.getOrElse( logger.info(s"Failed to Interpolate data at $time"))
+      List(
+        ChartPoint(
+          seriesName = e._1,
+          plotType = '.',
+          data = e._2.map(p => (p.totalWords.toDouble, p.averageSentiment))
+        ),
+        ChartPoint(
+          seriesName = e._1 + " - Interpolation",
+          plotType = '-',
+          data = (uniques.map(_._1) zip funcToArray(interpolateData(uniques.map(_._1),
+            uniques.map(_._2), 5), uniques.map(_._1))).sortBy(_._1)
+        )
+      )
     }
-    p.xlabel = "Content Count"
-    p.ylabel = "Sentiment"
-    p.legend = true
-    p.title = "Sentiment Vs. Word Count"
-
-    Try {
-      f.saveas(fileLocation + "SentimentVsWordCount_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: SentimentVsWordCount, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Sentiment Vs Word Count",
+      "Word Count",
+      "Sentiment",
+      fileLocation,
+      time
     )
   }
 
@@ -114,35 +100,27 @@ object Comparisons extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def sentimentVsPercentNegative(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-
-    entities.foreach { entity =>
-      val x = entity._2.map(_.averageSentiment)
-      val y = entity._2.map(_.percentNegativeSentiment)
-      p += plot(
-        x,
-        y,
-        '.',
-        name = entity._1)
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).map{ e =>
+      ChartPoint(
+        seriesName = e._1,
+        plotType = '.',
+        data = e._2.map(p => (p.averageSentiment, p.percentNegativeSentiment))
+      )
     }
-    p.xlabel = "Sentiment"
-    p.ylabel = "Negative Percentage"
-    p.legend = true
-    p.title = "Sentiment Vs. Negative Percentage"
-
-    Try {
-      f.saveas(fileLocation + "SentimentVsNegativePercentage_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: SentimentVsNegativePercentage, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Sentiment Vs Negative Percentage",
+      "Sentiment",
+      "Negative Percentage",
+      fileLocation,
+      time
     )
   }
 
@@ -151,35 +129,27 @@ object Comparisons extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def sentimentVsPercentPositive(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-
-    entities.foreach { entity =>
-      val x = entity._2.map(_.averageSentiment)
-      val y = entity._2.map(_.percentPositiveSentiment)
-      p += plot(
-        x,
-        y,
-        '.',
-        name = entity._1)
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).map{ e =>
+      ChartPoint(
+        seriesName = e._1,
+        plotType = '.',
+        data = e._2.map(p => (p.averageSentiment, p.percentPositiveSentiment))
+      )
     }
-    p.xlabel = "Sentiment"
-    p.ylabel = "Positive Percentage"
-    p.legend = true
-    p.title = "Sentiment Vs. Positive Percentage"
-
-    Try {
-      f.saveas(fileLocation + "SentimentVsPositivePercentage_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: SentimentVsPositivePercentage, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Sentiment Vs Positive Percentage",
+      "Sentiment",
+      "Positive Percentage",
+      fileLocation,
+      time
     )
   }
 
@@ -189,49 +159,44 @@ object Comparisons extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def positivePercentageVsUniqueAuthor(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-
-    entities.foreach { entity =>
-      val x = entity._2.map(_.uniqueAuthors.toDouble)
-      val y = entity._2.map(_.percentPositiveSentiment)
-      val listOfYs = entity._2.groupBy(_.uniqueAuthors).map(g =>
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).flatMap{ e =>
+      // Series to aid in interpolating the data based on the grouping of the data
+      val listOfYs = e._2.groupBy(_.uniqueAuthors).map(g =>
         (
-          g._1.toDouble,
-          g._2.map(i => i.percentPositiveSentiment.toFloat).sum,
-          g._2.map(i => i.percentNegativeSentiment).length.toFloat
+        g._1.toDouble,
+        g._2.map(i => i.percentPositiveSentiment.toFloat).sum,
+        g._2.map(i => i.percentNegativeSentiment).length.toFloat
         )
       ).toList
       val uniques = listOfYs.map(i => (i._1, (i._2 / i._3).toDouble )).sortBy(_._1).reverse
-      p += plot(
-        x,
-        y,
-        '.',
-        name = entity._1)
-
-      Try {
-        val func = funcToArray(interpolateData(uniques.map(_._1),
-          uniques.map(_._2), 2), uniques.map(_._1))
-        p += plot(uniques.map(_._1), func, '-', name = "Interpolation for: " + entity._1)
-      }.getOrElse( logger.info(s"Failed to Interpolate data at $time"))
+      List(
+        ChartPoint(
+          seriesName = e._1,
+          plotType = '.',
+          data = e._2.map(p => (p.uniqueAuthors.toDouble, p.percentPositiveSentiment))
+        ),
+        ChartPoint(
+          seriesName = e._1 + " - Interpolation",
+          plotType = '-',
+          data = (uniques.map(_._1) zip funcToArray(interpolateData(uniques.map(_._1),
+            uniques.map(_._2), 5), uniques.map(_._1))).sortBy(_._1)
+        )
+      )
     }
-    p.xlabel = "Unique Author Count"
-    p.ylabel = "Positive Percentage"
-    p.legend = true
-    p.title = "Positive Percentage Vs. Unique Author Count"
-
-    Try {
-      f.saveas(fileLocation + "PositivePercentageVsUniqueAuthorCount_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: PositivePercentageVsUniqueAuthorCount, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Positive Percentage Vs Unique Author Count",
+      "Unique Author Count",
+      "Positive Percentage",
+      fileLocation,
+      time
     )
   }
 
@@ -241,44 +206,39 @@ object Comparisons extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def positivePercentageVsContentCount(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-
-    entities.foreach { entity =>
-      val x = entity._2.map(_.contentCount.toDouble)
-      val y = entity._2.map(_.percentPositiveSentiment)
-      val listOfYs = entity._2.groupBy(_.contentCount).map(g =>
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).flatMap{ e =>
+      // Series to aid in interpolating the data based on the grouping of the data
+      val listOfYs = e._2.groupBy(_.contentCount).map(g =>
         (g._1, g._2.map(i => i.percentPositiveSentiment))).toList
       val uniques = listOfYs.map(i => (i._1.toDouble, i._2.sum / i._2.size.toDouble)).sortBy(_._1)
-      p += plot(
-        x,
-        y,
-        '.',
-        name = entity._1)
-
-      Try {
-        val func = funcToArray(interpolateData(uniques.map(_._1), uniques.map(_._2), 2),
-          uniques.map(_._1))
-        p += plot(uniques.map(_._1), func, '-', name = "Interpolation for: " + entity._1)
-      }.getOrElse( logger.info(s"Failed to Interpolate data at $time"))
+      List(
+        ChartPoint(
+          seriesName = e._1,
+          plotType = '.',
+          data = e._2.map(p => (p.contentCount.toDouble, p.percentPositiveSentiment))
+        ),
+        ChartPoint(
+          seriesName = e._1 + " - Interpolation",
+          plotType = '-',
+          data = (uniques.map(_._1) zip funcToArray(interpolateData(uniques.map(_._1),
+            uniques.map(_._2), 5), uniques.map(_._1))).sortBy(_._1)
+        )
+      )
     }
-    p.xlabel = "Positive Percentage"
-    p.ylabel = "Content Count"
-    p.legend = true
-    p.title = "Positive Percentage Vs. Content Count"
-
-    Try {
-      f.saveas(fileLocation + "PositivePercentageVsContentCount_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: PositivePercentageVsContentCount, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Positive Percentage Vs Content Count",
+      "Content Count",
+      "Positive Percentage",
+      fileLocation,
+      time
     )
   }
 
@@ -288,40 +248,37 @@ object Comparisons extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def authorCountVsContentCount(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-
-    entities.foreach { entity =>
-      val x = entity._2.map(_.uniqueAuthors.toDouble)
-      val y = entity._2.map(_.contentCount.toDouble)
-      p += plot(
-        x,
-        y,
-        '.',
-        name = entity._1)
-
-      Try {
-        val func = funcToArray(interpolateData(x, y, 1), x)
-        p += plot(x, func, '-', name = "Interpolation for: " + entity._1)
-      }.getOrElse( logger.info(s"Failed to Interpolate data at $time"))
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).flatMap{ e =>
+      // Series to aid in interpolating the data based on the grouping of the data
+      val x = e._2.map(_.uniqueAuthors.toDouble)
+      val y = e._2.map(_.contentCount.toDouble)
+      List(
+        ChartPoint(
+          seriesName = e._1,
+          plotType = '.',
+          data = e._2.map(p => (p.uniqueAuthors.toDouble, p.contentCount.toDouble))
+        ),
+        ChartPoint(
+          seriesName = e._1 + " - Interpolation",
+          plotType = '-',
+          data = (x zip funcToArray(interpolateData(x, y, 1), x)).sortBy(_._1)
+        )
+      )
     }
-    p.xlabel = "Author Count"
-    p.ylabel = "Content Count"
-    p.legend = true
-    p.title = "Author Count Vs. Content Count"
-
-    Try {
-      f.saveas(fileLocation + "AuthorCountVsContentCount_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: AuthorCountVsContentCount, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Author Count Vs Content Count",
+      "Author Count",
+      "Content Count",
+      fileLocation,
+      time
     )
   }
 }

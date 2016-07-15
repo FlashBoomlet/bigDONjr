@@ -7,17 +7,18 @@ import com.flashboomlet.charts.AverageSentiment.writeAverageSentimentGraph
 import com.flashboomlet.charts.AverageSentiment.averageSentimentByTOD
 import com.flashboomlet.charts.ContentCounter.contentCount
 import com.flashboomlet.charts.ContentCounter.contentCountByTOD
-import com.flashboomlet.charts.ContentCounter.entityCount
 import com.flashboomlet.charts.Comparisons.sentimentVsContentCount
 import com.flashboomlet.charts.Comparisons.sentimentVsPercentNegative
 import com.flashboomlet.charts.Comparisons.sentimentVsPercentPositive
 import com.flashboomlet.charts.Comparisons.sentimentVsWordCount
 import com.flashboomlet.charts.Comparisons.positivePercentageVsUniqueAuthor
-import com.flashboomlet.charts.Comparisons.positivePercentageVsContentCount
 import com.flashboomlet.charts.Comparisons.authorCountVsContentCount
-import com.flashboomlet.data.EntityFactory
 import com.flashboomlet.io.DatabaseController
 import com.flashboomlet.models.PostProcessData
+import com.flashboomlet.charts.GenericChartPlotter.chartPointPlot
+import com.flashboomlet.predicting.PollsterPatternConversion
+
+import com.flashboomlet.predicting.InstanceBasedPrediction
 
 object ChronoLapseDriver {
 
@@ -28,24 +29,36 @@ object ChronoLapseDriver {
   final val entities = List("Clinton", "Trump")
 
   def main(args: Array[String]): Unit = {
+    // A good begining that avoids the large gaps: 1467400000000L
     val beginning: Long = 1466900000000L
     val currentTime: Long = new Date().getTime
+
+    databaseController.dumpRecentPostProcess
     val tweets = entities.map(e =>
       (
       e,
-      databaseController.getTweetPostProcesses(e, beginning, currentTime)
+      databaseController.getTweetPostProcesses(e, beginning, currentTime).filter(p =>
+        p.publishStartDate > beginning)
       )
     )
-
     val nytArticles = entities.map(e =>
       (
       e,
-      databaseController.getArticlePostProcesses(e, beginning, currentTime)
+      databaseController.getArticlePostProcesses(e, beginning, currentTime).filter(p =>
+        p.publishStartDate > beginning)
       )
     )
+    val rawPollsterData = databaseController.getPollsterDataPointData()
+    val evaluatedData = InstanceBasedPrediction.predictValues(rawPollsterData)
 
-    writeCharts("Twitter", currentTime, tweets)
-    writeCharts("NYTArticles", currentTime,  nytArticles)
+    val location = fileLocation + currentTime + "/"
+    val dir = new File(location)
+    dir.mkdir()
+
+    chartPointPlot(PollsterPatternConversion.pollsterPatternToChartPoint(evaluatedData),
+      "Pollster Data", "Time", "Percentage", location, currentTime)
+    writeCharts("Twitter", currentTime, tweets, location)
+    writeCharts("NYTArticles", currentTime,  nytArticles, location)
   }
 
   /**
@@ -57,29 +70,25 @@ object ChronoLapseDriver {
   def writeCharts(
     source: String,
     time: Long,
-    data: List[(String, List[PostProcessData])]): Unit = {
+    data: List[(String, List[PostProcessData])],
+    filePath: String): Unit = {
 
-    val location = fileLocation + source + "_" + time + "/"
+    val location = filePath + source + "/"
     val dir = new File(location)
     dir.mkdir()
 
-    /*
-     * Haven't Decided if this will be useful right now... could be though...
-    entities.foreach(entity =>
-      entityCount(data.filter(s => s._1 == entity)
-        .flatMap(s => s._2), entity + source, location, time)
-    )
-    */
-    contentCount(data, location, time)
-    contentCountByTOD(data, location, time)
     writeAverageSentimentGraph(data, location, time)
+
+    contentCount(data, location, time)
+
+    contentCountByTOD(data, location, time)
     averageSentimentByTOD(data, location, time)
     sentimentVsContentCount(data, location, time)
     sentimentVsWordCount(data, location, time)
     sentimentVsPercentPositive(data, location, time)
     sentimentVsPercentNegative(data, location, time)
     positivePercentageVsUniqueAuthor(data, location, time)
-    // positivePercentageVsContentCount(data, location, time) The two correlate extremely close
     authorCountVsContentCount(data, location, time)
+
   }
 }

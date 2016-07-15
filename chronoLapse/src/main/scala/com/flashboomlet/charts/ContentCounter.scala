@@ -3,14 +3,11 @@ package com.flashboomlet.charts
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-import breeze.plot.Figure
-import breeze.plot.plot
+import com.flashboomlet.charts.GenericChartPlotter.chartPointPlot
 import com.flashboomlet.interpolation.Interpolation.funcToArray
 import com.flashboomlet.interpolation.Interpolation.interpolateData
 import com.typesafe.scalalogging.LazyLogging
 import com.flashboomlet.models.PostProcessData
-
-import scala.util.Try
 
 /**
   * Content Count is a way to view data by content
@@ -24,31 +21,27 @@ object ContentCounter extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def contentCount(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-    entities.foreach { entity =>
-      val t = entity._2.map(_.publishStartDate.toDouble)
-      val count = entity._2.map(_.contentCount.toDouble)
-      p += plot(t, count, '.', name = entity._1, shapes = true)
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).map{ e =>
+      ChartPoint(
+        seriesName = e._1,
+        plotType = '.',
+        data = e._2.map(p => (p.publishStartDate.toDouble, p.contentCount.toDouble))
+      )
     }
-
-    p.xlabel = "Time (5 Minute Groups)"
-    p.ylabel = "Tweet Count"
-    p.legend = true
-    p.title = "Content Count"
-
-    Try {
-      f.saveas(fileLocation + "ContentCount_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: ContentCount, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Content Count",
+      "Time (5 Minute Groups)",
+      "Content Count",
+      fileLocation,
+      time
     )
   }
 
@@ -57,41 +50,41 @@ object ContentCounter extends LazyLogging with ChartConstants {
     *
     * @param entities the list of data to be evaluated by entity
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def contentCountByTOD(
     entities: List[(String, List[PostProcessData])],
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
-    entities.foreach { entity =>
-      p += plot(entity._2.map(_.minute),
-        entity._2.map(_.contentCount), '.', name = entity._1)
-
-      val listOfYs = entity._2.groupBy(_.minute).map(g =>
+    val chartPoints = entities.map( e => (e._1, e._2.sortBy(_.publishStartDate))).flatMap{ e =>
+      // Series to aid in interpolating the data based on the grouping of the data
+      val listOfYs = e._2.groupBy(_.minute).map(g =>
         (g._1, g._2.map(i => i.contentCount))).toList
       val uniques = listOfYs.map(i =>
         (i._1.toDouble, i._2.sum / i._2.size.toDouble)).sortBy(_._1)
-      Try {
-        val func = funcToArray(interpolateData(uniques.map(_._1),
-          uniques.map(_._2), 5), uniques.map(_._1))
-        p += plot(uniques.map(_._1), func, '-', name = "Interpolation for: " + entity._1)
-      }.getOrElse( logger.info(s"Failed to Interpolate data at $time"))
 
+      List(
+        ChartPoint(
+          seriesName = e._1,
+          plotType = '.',
+          data = e._2.map(p => (p.minute.toDouble, p.contentCount.toDouble))
+        ),
+        ChartPoint(
+          seriesName = e._1 + " - Interpolation",
+          plotType = '-',
+          data = (uniques.map(_._1) zip funcToArray(interpolateData(uniques.map(_._1),
+            uniques.map(_._2), 5), uniques.map(_._1))).sortBy(_._1)
+        )
+      )
     }
-
-    p.xlabel = "Time Of Day"
-    p.ylabel = "Tweet Count"
-    p.legend = true
-    p.title = "Content Count by Time of Day"
-
-    Try {
-      f.saveas(fileLocation + "ContentCountByTOD_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: ContentCountByTOD, at $time")
+    chartPointPlot(
+      chartPoints,
+      "Content Count by Time of Day",
+      "Time Of Day",
+      "Content Count",
+      fileLocation,
+      time
     )
   }
 
@@ -101,6 +94,7 @@ object ContentCounter extends LazyLogging with ChartConstants {
     * @param data the list of data to be evaluated
     * @param entity the entity to be evaluated
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def entityCount(
     data: List[PostProcessData],
@@ -108,33 +102,23 @@ object ContentCounter extends LazyLogging with ChartConstants {
     fileLocation: String,
     time: Long): Unit = {
 
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
     val t = data.map(_.publishStartDate.toDouble)
-
-    val contentCount = data.map(_.contentCount.toDouble)
-    p += plot(t, contentCount, '.', name = "Content Count")
-
-    val sentenceCount = data.map(_.totalSentences.toDouble)
-    p += plot(t, sentenceCount, '.', name = "Sentence Count")
-
-    val wordCount = data.map(_.totalWords.toDouble)
-    p += plot(t, wordCount, '.', name = "Word Count")
-
-    val authorCount = data.map(_.uniqueAuthors.toDouble)
-    p += plot(t, authorCount, '.', name = "Author Count")
-
-    p.title = "Content Counts for: " + entity
-    p.xlabel = "Time (5 Minute Groups)"
-    p.ylabel = "Number of Occurrences"
-    p.legend = true
-
-    Try {
-      f.saveas(fileLocation + "EntityCount_" + entity + "_" + time + ".png" )
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: EntityCount, at $time")
+    val contentCount = ChartPoint("Content Count", '.',
+      (t zip data.map(_.contentCount.toDouble)).sortBy(_._1))
+    val sentenceCount = ChartPoint("Sentence Count", '.',
+      (t zip data.map(_.totalSentences.toDouble)).sortBy(_._1))
+    val wordCount = ChartPoint("Word Count", '.',
+      (t zip data.map(_.totalWords.toDouble)).sortBy(_._1))
+    val authorCount = ChartPoint("Author Count", '.',
+      (t zip data.map(_.uniqueAuthors.toDouble)).sortBy(_._1))
+    val chartPoints = List(contentCount, sentenceCount, wordCount, authorCount)
+    chartPointPlot(
+      chartPoints,
+      "Content Counts for: " + entity,
+      "Time (5 Minute Groups)",
+      "Number of Occurrences",
+      fileLocation,
+      time
     )
   }
 
@@ -144,17 +128,13 @@ object ContentCounter extends LazyLogging with ChartConstants {
     * @param data the list of data to be evaluated
     * @param entity the entity to be evaluated
     * @param fileLocation the location to try to output the file to
+    * @param time the time that the chart is generated off of
     */
   def entityCountByDay(
     data: List[PostProcessData],
     entity: String,
     fileLocation: String,
     time: Long): Unit = {
-
-    val f = Figure()
-    f.height = chartHeight
-    f.width = chartWidth
-    val p = f.subplot(1, 1, 0)
 
     val day = data.groupBy(s => dateFormat.format(s.publishStartDate)).map { d =>
       (
@@ -165,30 +145,23 @@ object ContentCounter extends LazyLogging with ChartConstants {
         d._2.map(_.uniqueAuthors.toDouble).sum
       )
     }
-
     val t = day.map(_._1).toList
-    val contentCount = day.map(_._2).toList
-    p += plot(t, contentCount, '.', name = "Content Count")
-
-    val sentenceCount = day.map(_._3).toList
-    p += plot(t, sentenceCount, '.', name = "Sentence Count")
-
-    val wordCount = day.map(_._4).toList
-    p += plot(t, wordCount, '.', name = "Word Count")
-
-    val authorCount = day.map(_._5).toList
-    p += plot(t, authorCount, '.', name = "Author Count")
-
-
-    p.title = "Content Counts by Day for: " + entity
-    p.xlabel = "Day"
-    p.ylabel = "Number of Occurrences"
-    p.legend = true
-
-    Try {
-      f.saveas(fileLocation + "EntityCountByDay_" + entity + "_" + time + ".png")
-    }.getOrElse(
-      logger.info(s"Failed to Create Chart for: EntityCountByDay, at $time")
+    val contentCount = ChartPoint("Content Count", '.',
+      (t zip day.map(_._2).toList).sortBy(_._1))
+    val sentenceCount = ChartPoint("Sentence Count", '.',
+      (t zip day.map(_._3).toList).sortBy(_._1))
+    val wordCount = ChartPoint("Word Count", '.',
+      (t zip day.map(_._4).toList).sortBy(_._1))
+    val authorCount = ChartPoint("Author Count", '.',
+      (t zip day.map(_._5).toList).sortBy(_._1))
+    val chartPoints = List(contentCount, sentenceCount, wordCount, authorCount)
+    chartPointPlot(
+      chartPoints,
+      "Content Counts by Day for: " + entity,
+      "Day",
+      "Number of Occurrences",
+      fileLocation,
+      time
     )
   }
 }

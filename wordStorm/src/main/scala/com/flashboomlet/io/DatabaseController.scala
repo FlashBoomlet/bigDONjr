@@ -1,8 +1,13 @@
 package com.flashboomlet.io
 
+import java.util.Date
+
 import com.flashboomlet.data.models.FinalTweet
 import com.flashboomlet.data.models.NewYorkTimesArticle
+import com.flashboomlet.data.models.PollsterDataPoint
+import com.flashboomlet.data.models.TwitterSearch
 import com.flashboomlet.db.MongoDatabaseDriver
+import com.flashboomlet.db.MongoConstants
 import com.flashboomlet.db.implicits.MongoImplicits
 import com.flashboomlet.models.PostProcessData
 import com.flashboomlet.models.RecentPostProcess
@@ -10,6 +15,8 @@ import com.typesafe.scalalogging.LazyLogging
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.bson.BSONDateTime
 import reactivemongo.bson.BSONDocument
+import reactivemongo.bson.BSONLong
+import reactivemongo.bson.BSONString
 
 import scala.concurrent.Await
 import scala.concurrent.Future
@@ -26,6 +33,7 @@ class DatabaseController
     extends WordStormMongoConstants
     with LazyLogging
     with MongoImplicits
+    with MongoConstants
     with PostProcessDataImplicits
     with RecentPostProcessImplicits {
 
@@ -40,6 +48,8 @@ class DatabaseController
   val tweetPostProcessDatasCollection: BSONCollection = databaseDriver
     .db(TweetPostProcessDatasCollectionString)
 
+  val twitterSearchesCollection: BSONCollection = databaseDriver.db(TwitterSearchesCollection)
+
   /** Database collection for recent article post process */
   val recentArticlePostProcessCollection: BSONCollection = databaseDriver
     .db(RecentArticlePostProcessCollectionString)
@@ -48,11 +58,8 @@ class DatabaseController
   val recentTweetPostProcessCollection: BSONCollection = databaseDriver
     .db(RecentTweetPostProcessCollectionString)
 
-//  def dumpPostProcessData(): Unit = {
-//    Await.result(
-//      articlePostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]().collect[List](),
-//      Duration.Inf).foreach(d => println(d))
-//  }
+  val pollsterDataPointsCollection: BSONCollection = databaseDriver
+    .db(PollsterDataPointsCollection)
 
   def insertArticlePostProcessData(postProcessData: PostProcessData): Unit = {
     articlePostProcessDatasCollection.insert(postProcessData).onComplete {
@@ -86,7 +93,7 @@ class DatabaseController
 
   def getPostProcessDateRangeQuery(entity: String, start: Long, end: Long): BSONDocument =
     BSONDocument(
-      PostProcessDataConstants.EntityLastNameString -> entity/*,
+      PostProcessDataConstants.EntityLastNameString -> entity/*
       PostProcessDataConstants.PublishStartDateString ->
         BSONDocument(
           MetaDataConstants.PublishDateString -> BSONDocument(
@@ -97,15 +104,41 @@ class DatabaseController
     )
 
   def dumpPostProcesses: Unit = {
-    Await.result(tweetPostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]().collect[List](), Duration.Inf).foreach(d => println(d))
-    Await.result(articlePostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]().collect[List](), Duration.Inf).foreach(d => println(d))
-
+    Await.result(tweetPostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]()
+      .collect[List](), Duration.Inf).foreach(d => println(d))
+    Await.result(articlePostProcessDatasCollection.find(BSONDocument()).cursor[PostProcessData]()
+      .collect[List](), Duration.Inf).foreach(d => println(d))
   }
 
   def dumpRecentPostProcess: Unit = {
-    Await.result(recentTweetPostProcessCollection.find(BSONDocument()).cursor[RecentPostProcess]().collect[List](), Duration.Inf).foreach(d => println(d))
-    Await.result(recentArticlePostProcessCollection.find(BSONDocument()).cursor[RecentPostProcess]().collect[List](), Duration.Inf).foreach(d => println(d))
+    print("Tweets: ")
+    Await.result(recentTweetPostProcessCollection.find(BSONDocument()).cursor[RecentPostProcess]()
+      .collect[List](), Duration.Inf).foreach(d => println(d))
+    print("Articles: ")
+    Await.result(recentArticlePostProcessCollection.find(BSONDocument()).cursor[RecentPostProcess]()
+      .collect[List](), Duration.Inf).foreach(d => println(d))
+  }
 
+  def dumpRecentTweet: Unit = {
+    Await.result(databaseDriver.twitterSearchesCollection.find(BSONDocument())
+      .cursor[TwitterSearch]().collect[List](), Duration.Inf).foreach(d => println(d))
+  }
+
+  /**
+    * Gets a twitter search recent tweet id from a given query and entity last name
+    *
+    * @param query query to search for relevent TwitterSearch in DB
+    * @param entityLastName Entity last name to search for relevent TwitterSearch in DB
+    * @return Recent tweet id associated with the TwitterSearch if it exists, else none
+    */
+  def getTwitterSearch(query: String, entityLastName: String): Option[TwitterSearch] ={
+    val future: Future[Option[TwitterSearch]] = twitterSearchesCollection
+    .find(BSONDocument(
+      TwitterSearchConstants.QueryString -> query,
+      TwitterSearchConstants.EntityLastNameString -> entityLastName))
+    .cursor[TwitterSearch]().collect[List]()
+    .map { list => list.headOption }
+    Await.result(future, Duration.Inf)
   }
 
   def getArticlePostProcesses(
@@ -122,13 +155,29 @@ class DatabaseController
 
 
   def getTweetPostProcesses(
-      entityLastName: String,
-      starTime: Long,
-      endTime: Long): List[PostProcessData] = {
+    entityLastName: String,
+    starTime: Long,
+    endTime: Long): List[PostProcessData] = {
 
     val future: Future[List[PostProcessData]] = tweetPostProcessDatasCollection.find(
       getPostProcessDateRangeQuery(entityLastName, starTime, endTime)
     ).cursor[PostProcessData]().collect[List]()
+
+    Await.result(future, Duration.Inf)
+  }
+
+  def getPollsterDataPointData(
+    starTime: Long = 1432015200000L,
+    endTime: Long = new Date().getTime): List[PollsterDataPoint] = {
+
+    val future: Future[List[PollsterDataPoint]] = pollsterDataPointsCollection.find(
+      BSONDocument(
+        PollsterDataPointConstants.DateString -> BSONDocument(
+          "$gte" -> BSONDateTime(starTime),
+          "$lt" -> BSONDateTime(endTime)
+        )
+      )
+    ).cursor[PollsterDataPoint]().collect[List]()
 
     Await.result(future, Duration.Inf)
   }
